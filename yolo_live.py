@@ -1,3 +1,4 @@
+"""
 import cv2
 import time
 import streamlit as st
@@ -51,3 +52,66 @@ def live_detection(plot_boxes, model_path="best.pt", webcam_resolution=(1280, 72
             break
 
     cap.release()
+"""
+import cv2
+import time
+import streamlit as st
+from ultralytics import YOLO
+from draw_utils_live import plot_boxes_live, color_map_live
+
+# Function to handle live webcam detection
+def live_detection(plot_boxes, model_path="best.pt", webcam_resolution=(640, 480)):
+    frame_width, frame_height = webcam_resolution
+    cap = cv2.VideoCapture(0)
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, frame_width)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, frame_height)
+    
+    model = YOLO(model_path).to('cpu')  # Load the YOLO model
+    frame_placeholder, object_description_placeholder = st.empty(), st.empty()
+    stop_detection = False
+
+    st.sidebar.title("Control Panel")
+    start_button = st.sidebar.button("Start Live Detection")
+    stop_button = st.sidebar.button("Stop Live Detection")
+
+    # Store the state of detection in session state
+    if "is_detecting" not in st.session_state:
+        st.session_state.is_detecting = False
+
+    # Handle button clicks
+    if start_button:
+        st.session_state.is_detecting = True
+    if stop_button:
+        st.session_state.is_detecting = False
+
+    # Run live detection loop
+    while st.session_state.is_detecting:
+        ret, frame = cap.read()
+        if not ret:
+            st.error("Failed to access webcam.")
+            break
+
+        # Run YOLO model on the frame
+        results = model(frame)
+        frame, labels, descriptions = plot_boxes_live(results, frame, model, color_map_live)
+
+        # Display the frame in Streamlit
+        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        frame_placeholder.image(frame_rgb, channels="RGB", use_container_width=True)
+
+        # Display object descriptions
+        description_display = "<div class='title-box'>Detected Objects:</div>"
+        for label, desc in zip(labels, descriptions):
+            description_display += f"<div class='description-box'><b>{label}</b>: {desc}</div>"
+        object_description_placeholder.markdown(description_display, unsafe_allow_html=True)
+
+        # Add a small delay to avoid excessive CPU usage
+        time.sleep(0.1)
+
+    cap.release()
+    st.success("Live detection stopped.")
+
+# Call the function within Streamlit
+if __name__ == "__main__":
+    st.title("YOLO Live Webcam Detection")
+    live_detection(plot_boxes_live)
