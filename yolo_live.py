@@ -62,7 +62,7 @@ from draw_utils_live import plot_boxes_live, color_map_live
 # Function to handle live webcam detection
 def live_detection(plot_boxes, model_path="best.pt", webcam_resolution=(640, 480)):
     frame_width, frame_height = webcam_resolution
-    cap = cv2.VideoCapture(0)
+    cap = cv2.VideoCapture(source_webcam)
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, frame_width)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, frame_height)
     
